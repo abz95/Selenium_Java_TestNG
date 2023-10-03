@@ -1,6 +1,4 @@
-import dev.failsafe.internal.util.Assert;
-import models.Products;
-import org.asynchttpclient.util.ProxyUtils;
+import model.Product;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.By;
@@ -24,16 +22,16 @@ public class HomePage {
         return webDriver.findElements(By.xpath("//*[@id=\"shop-main-navigation\"]//div[@data-zta='product-box-list']"));
     }
 
-    public List<Products> addFirstVariantOfProductv1(int numberOfProductsToAdd){
+    public List<Product> addFirstVariantOfProductv1(int numberOfProductsToAdd){
         List<WebElement> allProducts = getAllProductsOnPage();
-        List<Products> addedProducts = new ArrayList<>();
+        List<Product> addedProducts = new ArrayList<>();
         for (int i = 0; i < numberOfProductsToAdd ; i++){
             String productName = allProducts.get(i).findElement(By.xpath(".//*[contains(@data-zta, 'product-link')]")).getText();
             //compensating for the tag New that some products might have
             productName = productName.endsWith("new") ? productName.substring(0, productName.length() - 3).trim() : productName;
             String productVariant = allProducts.get(i).findElement(By.xpath(".//*[contains(@class, 'ProductListItemVariant-module_variantDescription__36Mpm')]")).getText();
             Double productPrice = Double.parseDouble(allProducts.get(i).findElement(By.xpath(".//*[contains(@class, 'z-price__amount')]")).getText().substring(1));
-            Products productInfo = new Products(productName, productVariant, productPrice);
+            Product productInfo = new Product(productName, productVariant, productPrice);
             addedProducts.add(productInfo);
             allProducts.get(i).findElement(By.xpath(".//*[contains(@title, 'Add to basket')]")).click();
             waitForAddToCartTick(i+1);

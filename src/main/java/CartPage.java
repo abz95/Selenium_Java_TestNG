@@ -1,4 +1,4 @@
-import models.Products;
+import model.Product;
 import org.openqa.selenium.By;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
@@ -6,10 +6,8 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.Select;
 
 import java.math.BigDecimal;
-import java.sql.Time;
-import java.util.Collections;
+
 import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
@@ -42,30 +40,30 @@ public class CartPage {
             return false;
         }
     }
-    public List<Products> getAllCartProducts(){
+    public List<Product> getAllCartProducts(){
         List<WebElement> cartProducts = cartProducts();
-        List<Products> addedProducts = new ArrayList<>();
+        List<Product> addedProducts = new ArrayList<>();
         for (WebElement cartProduct : cartProducts) {
             String productName = cartProduct.findElement(By.xpath(".//*[contains(@data-zta, 'productName')]")).getText();
             String productVariant = cartProduct.findElement(By.xpath(".//*[contains(@data-zta, 'productVariant')]")).getText().substring(2);
             Double productPrice = Double.parseDouble(cartProduct.findElement(By.xpath(".//*[contains(@data-zta, 'productStandardPriceAmount')]")).getText().substring(1));
-            Products productInfo = new Products(productName, productVariant, productPrice);
+            Product productInfo = new Product(productName, productVariant, productPrice);
             addedProducts.add(productInfo);
         }
         return addedProducts;
     }
 
-    public List<Products> getAllCartProductPriceDesc(){
-        List<Products> allCartProducts = getAllCartProducts();
-        allCartProducts.sort(Comparator.comparing(Products::getPrice, Comparator.reverseOrder()));
+    public List<Product> getAllCartProductPriceDesc(){
+        List<Product> allCartProducts = getAllCartProducts();
+        allCartProducts.sort(Comparator.comparing(Product::getPrice, Comparator.reverseOrder()));
         return allCartProducts;
     }
 
     public double getCartProductsTotalPrice(){
         BigDecimal productTotal = new BigDecimal(0);
-        List<Products> products = getAllCartProductPriceDesc();
+        List<Product> products = getAllCartProductPriceDesc();
 
-        for (Products product : products) {
+        for (Product product : products) {
             productTotal = productTotal.add(BigDecimal.valueOf(product.getPrice()));
         }
         productTotal = productTotal.setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -157,12 +155,12 @@ public class CartPage {
         }
     }
 
-    public List<Products> addProductsFromRecommendations(int numberOfProductsToAdd) throws InterruptedException {
+    public List<Product> addProductsFromRecommendations(int numberOfProductsToAdd) throws InterruptedException {
         WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[@id='checkout-frontend']//div[contains(@class, 'recommendations-slider-module_wrapper__gSjnL')]")));
         List<WebElement> sliders = webDriver.findElements(By.xpath("//*[@id='checkout-frontend']//div[contains(@class, 'recommendations-slider-module_wrapper__gSjnL')]"));
         WebElement recommendationSlider = sliders.get(1);
-        List<Products> addedProducts = new ArrayList<>();
+        List<Product> addedProducts = new ArrayList<>();
         for (int i = 0; i < numberOfProductsToAdd ; i++){
             WebElement recommendedProduct = recommendationSlider.findElement(By.xpath(".//*[contains(@class, 'splide__slide') and not(contains(@aria-hidden, 'true'))]"));
             String productName = recommendedProduct.findElement(By.xpath(".//*[contains(@data-zta, 'P1UIC')]")).getText();
@@ -173,7 +171,7 @@ public class CartPage {
             String productPrice = recommendedProduct.findElement(By.xpath(".//*[contains(@class, 'z-price__amount')]")).getText();
             productPrice = productPrice.startsWith("Now ") ? productPrice.substring(5) : productPrice.substring(1);
             Double productPriceValue = Double.parseDouble(productPrice);
-            Products productInfo = new Products(productName, productVariant, productPriceValue);
+            Product productInfo = new Product(productName, productVariant, productPriceValue);
             addedProducts.add(productInfo);
 
             recommendedProduct.findElement(By.xpath(".//*[contains(@class, 'z-btn')]")).click();

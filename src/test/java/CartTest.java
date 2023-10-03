@@ -1,4 +1,4 @@
-import models.Products;
+import model.Product;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -41,7 +41,7 @@ public class CartTest
 
         homePage.clickAgree();
 
-        List<Products> productsAdded = homePage.addFirstVariantOfProductv1(3);
+        List<Product> productsAdded = homePage.addFirstVariantOfProductv1(3);
         String url = webDriver.getCurrentUrl();
     }
 
@@ -71,7 +71,7 @@ public class CartTest
 
         homePage.clickAgree();
 
-        List<Products> productsAdded = homePage.addFirstVariantOfProductv1(2);
+        List<Product> productsAdded = homePage.addFirstVariantOfProductv1(2);
 
         //fix asserts arguments
         //softAssert.assertEquals(2,homePage.getCartButtonItemCount());
@@ -80,21 +80,21 @@ public class CartTest
 
         WebElement cartFront = wait.until(ExpectedConditions.visibilityOf(webDriver.findElement((By.id("checkout-frontend")))));
         Assert.assertTrue(webDriver.getCurrentUrl().contains("cart"));
-        List<Products> productsInCart = cartPage.getAllCartProducts();
+        List<Product> productsInCart = cartPage.getAllCartProducts();
         //Assert.assertEquals(productsAdded,productsInCart);
         Assert.assertTrue(productsAdded.equals(productsInCart));
 
         Assert.assertEquals(cartPage.getCartProductsTotalPrice(),cartPage.getCartSubTotal());
 
         //deleting by name, with the highest price
-        List<Products> descPriceProducts = cartPage.getAllCartProductPriceDesc();
+        List<Product> descPriceProducts = cartPage.getAllCartProductPriceDesc();
         //cartPage.deleteProductFromCartByName(descPriceProducts.get(0).getPrice());
 
         cartPage.changeShippingCountry("Portugal","5000");
 
         cartPage.deleteProductFromCartByPrice(descPriceProducts.get(0).getPrice());
         Assert.assertTrue(cartPage.deleteAlertDisplayed());
-        List<Products> recommendationProducts = new ArrayList<>();
+        List<Product> recommendationProducts = new ArrayList<>();
         try {
             recommendationProducts = cartPage.addProductsFromRecommendations(0);
         } catch (InterruptedException e) {

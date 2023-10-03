@@ -1,12 +1,12 @@
-package models;
+package model;
 import java.util.Objects;
 
-public class Products {
+public class Product {
     private String name;
     private String variant;
     private double price;
 
-    public Products(String name, String variant, double price) {
+    public Product(String name, String variant, double price) {
         this.name = name;
         this.variant = variant;
         this.price = price;
@@ -43,7 +43,7 @@ public class Products {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Products product = (Products) o;
+        Product product = (Product) o;
         return Double.compare(product.price, price) == 0 &&
                 Objects.equals(name, product.name) &&
                 Objects.equals(variant, product.variant);
@@ -52,7 +52,7 @@ public class Products {
     public boolean equalsWithoutVariant(Object o){
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Products product = (Products) o;
+        Product product = (Product) o;
         return Double.compare(product.price, price) == 0 &&
                 Objects.equals(name, product.name);
     }
