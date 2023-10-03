@@ -1,4 +1,6 @@
 import dev.failsafe.internal.util.Assert;
+import models.Products;
+import org.asynchttpclient.util.ProxyUtils;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.By;
@@ -22,33 +24,16 @@ public class HomePage {
         return webDriver.findElements(By.xpath("//*[@id=\"shop-main-navigation\"]//div[@data-zta='product-box-list']"));
     }
 
-    //add click functionality as the name suggests, or change the function to just fetch the values
-    public List<List<WebElement>> addFirstVariantOfProductv0(int numberOfProductsToAdd){
+    public List<Products> addFirstVariantOfProductv1(int numberOfProductsToAdd){
         List<WebElement> allProducts = getAllProductsOnPage();
-        List<List<WebElement>> addedProducts = new ArrayList<>();
+        List<Products> addedProducts = new ArrayList<>();
         for (int i = 0; i < numberOfProductsToAdd ; i++){
-            List<WebElement> productInfo = new ArrayList<>();
-            productInfo.add(allProducts.get(i).findElement(By.xpath(".//*[contains(@data-zta, 'product-link')]")));
-            productInfo.add(allProducts.get(i).findElement(By.xpath(".//*[contains(@class, 'ProductListItemVariant-module_variantDescription__36Mpm')]")));
-            productInfo.add(allProducts.get(i).findElement(By.xpath(".//*[contains(@class, 'z-price__amount')]")));
-            //check why adding cart button
-            productInfo.add(allProducts.get(i).findElement(By.xpath(".//*[contains(@title, 'Add to basket')]")));
-            addedProducts.add(productInfo);
-
-        }
-        return addedProducts;
-    }
-
-    public List<List<String>> addFirstVariantOfProductv1(int numberOfProductsToAdd){
-        List<WebElement> allProducts = getAllProductsOnPage();
-        List<List<String>> addedProducts = new ArrayList<>();
-        for (int i = 0; i < numberOfProductsToAdd ; i++){
-            List<String> productInfo = new ArrayList<>();
             String productName = allProducts.get(i).findElement(By.xpath(".//*[contains(@data-zta, 'product-link')]")).getText();
             //compensating for the tag New that some products might have
-            productInfo.add(productName.endsWith("new") ? productName.substring(0, productName.length() - 3).trim() : productName);
-            productInfo.add(allProducts.get(i).findElement(By.xpath(".//*[contains(@class, 'ProductListItemVariant-module_variantDescription__36Mpm')]")).getText());
-            productInfo.add(allProducts.get(i).findElement(By.xpath(".//*[contains(@class, 'z-price__amount')]")).getText().substring(1));
+            productName = productName.endsWith("new") ? productName.substring(0, productName.length() - 3).trim() : productName;
+            String productVariant = allProducts.get(i).findElement(By.xpath(".//*[contains(@class, 'ProductListItemVariant-module_variantDescription__36Mpm')]")).getText();
+            Double productPrice = Double.parseDouble(allProducts.get(i).findElement(By.xpath(".//*[contains(@class, 'z-price__amount')]")).getText().substring(1));
+            Products productInfo = new Products(productName, productVariant, productPrice);
             addedProducts.add(productInfo);
             allProducts.get(i).findElement(By.xpath(".//*[contains(@title, 'Add to basket')]")).click();
             waitForAddToCartTick(i+1);

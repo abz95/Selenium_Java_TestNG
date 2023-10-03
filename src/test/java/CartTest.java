@@ -1,3 +1,4 @@
+import models.Products;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -6,6 +7,7 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.By;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.testng.Assert;
@@ -15,7 +17,7 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 
-public class TestCases
+public class CartTest
 {
 
     public static WebDriver webDriver = new ChromeDriver();
@@ -30,6 +32,17 @@ public class TestCases
         //System.setProperty("webDriver.chrome.driver",System.getProperty("user.dir") + "/src/test/chromedriver/chromedriver.exe")
         webDriver.manage().window().maximize();
         //webDriver.get("https://www.google.com");
+    }
+
+    @Test
+    void productClass(){
+        WebDriverWait wait = new WebDriverWait(webDriver,Duration.ofSeconds(10));
+        webDriver.get("https://www.zooplus.com/shop/cats/dry_cat_food");
+
+        homePage.clickAgree();
+
+        List<Products> productsAdded = homePage.addFirstVariantOfProductv1(3);
+        String url = webDriver.getCurrentUrl();
     }
 
     @Test
@@ -49,63 +62,6 @@ public class TestCases
         }
 
     }
-    @Test
-    void ProductAdd(){
-        WebDriverWait wait = new WebDriverWait(webDriver,Duration.ofSeconds(10));
-        webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(4));
-        webDriver.get("https://www.zooplus.com/shop/cats/dry_cat_food");
-
-        homePage.clickAgree();
-
-        WebElement addToCart = homePage.selectProduct(1,1);
-        addToCart.click();
-
-        homePage.waitForAddToCartTick(1);
-
-        addToCart = homePage.selectProduct(2,1);
-        addToCart.click();
-
-        homePage.waitForAddToCartTick(2);
-
-        addToCart = homePage.selectProduct(3,1);
-        addToCart.click();
-
-        Assert.assertTrue(homePage.waitForAddToCartTick(3));
-
-        homePage.openCart();
-
-        WebElement cartFront = wait.until(ExpectedConditions.visibilityOf(webDriver.findElement((By.id("checkout-frontend")))));
-        Assert.assertTrue(webDriver.getCurrentUrl().contains("cart"));
-
-        //List<WebElement> productsInCart = webDriver.findElements(By.xpath("//article[@class='Hfp1Ts5oeSm5Qkefdz4a']//div[@data-zta='articleQuantitySubtotal']//span[@data-zta='productStandardPriceAmount']"));
-        List<List<String>> productsInCart = cartPage.getAllCartProducts();
-        Assert.assertEquals(productsInCart.size(),3);
-    }
-
-    @Test
-    void ProductsAddv0(){
-        WebDriverWait wait = new WebDriverWait(webDriver,Duration.ofSeconds(10));
-        webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(4));
-        webDriver.get("https://www.zooplus.com/shop/cats/dry_cat_food");
-
-        homePage.clickAgree();
-
-        WebElement addToCart;
-
-        List<List<WebElement>> totalProducts = homePage.addFirstVariantOfProductv0(3);
-
-        for (int i = 0; i < totalProducts.size() ; i++){
-            addToCart = totalProducts.get(i).get(3);
-            addToCart.click();
-            homePage.waitForAddToCartTick(i+1);
-            System.out.println(totalProducts.get(i).get(2).getText());
-        }
-
-        homePage.openCart();
-
-        WebElement cartFront = wait.until(ExpectedConditions.visibilityOf(webDriver.findElement((By.id("checkout-frontend")))));
-        Assert.assertTrue(webDriver.getCurrentUrl().contains("cart"));
-    }
 
     @Test
     void ProductsAddv1(){
@@ -115,7 +71,7 @@ public class TestCases
 
         homePage.clickAgree();
 
-        List<List<String>> productsAdded = homePage.addFirstVariantOfProductv1(2);
+        List<Products> productsAdded = homePage.addFirstVariantOfProductv1(2);
 
         //fix asserts arguments
         //softAssert.assertEquals(2,homePage.getCartButtonItemCount());
@@ -124,27 +80,38 @@ public class TestCases
 
         WebElement cartFront = wait.until(ExpectedConditions.visibilityOf(webDriver.findElement((By.id("checkout-frontend")))));
         Assert.assertTrue(webDriver.getCurrentUrl().contains("cart"));
-        List<List<String>> productsInCart = cartPage.getAllCartProducts();
-        Assert.assertEquals(productsAdded,productsInCart);
+        List<Products> productsInCart = cartPage.getAllCartProducts();
+        //Assert.assertEquals(productsAdded,productsInCart);
+        Assert.assertTrue(productsAdded.equals(productsInCart));
 
         Assert.assertEquals(cartPage.getCartProductsTotalPrice(),cartPage.getCartSubTotal());
 
         //deleting by name, with the highest price
-        List<List<String>> descPriceProducts = cartPage.getAllCartProductPriceDesc();
-        //cartPage.deleteProductFromCartByName(descPriceProducts.get(0).get(0));
+        List<Products> descPriceProducts = cartPage.getAllCartProductPriceDesc();
+        //cartPage.deleteProductFromCartByName(descPriceProducts.get(0).getPrice());
 
         cartPage.changeShippingCountry("Portugal","5000");
 
-        //cartPage.deleteProductFromCartByPrice(descPriceProducts.get(0).get(2));
-        //Assert.assertTrue(cartPage.deleteAlertDisplayed());
+        cartPage.deleteProductFromCartByPrice(descPriceProducts.get(0).getPrice());
+        Assert.assertTrue(cartPage.deleteAlertDisplayed());
+        List<Products> recommendationProducts = new ArrayList<>();
         try {
-            List<List<String>> recommendationProducts = cartPage.addProductsFromRecommendations(0);
+            recommendationProducts = cartPage.addProductsFromRecommendations(0);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+
+        /*List<Products> allProductsAdded = new ArrayList<>();
+        allProductsAdded.addAll(productsAdded);
+        allProductsAdded.addAll(recommendationProducts);
+        productsInCart = cartPage.getAllCartProducts();
+        Boolean compare = allProductsAdded.equalsWithoutVariant(productsInCart);*/
+
+
+
         descPriceProducts = cartPage.getAllCartProductPriceDesc();
         //cartPage.deleteProductFromCartByName(descPriceProducts.get(0).get(0));
-        cartPage.incrementProductQtyByPrice(descPriceProducts.get(descPriceProducts.size()-1).get(2),3);
+        cartPage.incrementProductQtyByPrice(descPriceProducts.get(descPriceProducts.size()-1).getPrice(),3);
 
         Assert.assertEquals(cartPage.getCartSubTotal() + cartPage.getShippingFees(),cartPage.getCartAmountTotal());
 

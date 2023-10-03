@@ -1,4 +1,5 @@
 package models;
+import java.util.Objects;
 
 public class Products {
     private String name;
@@ -36,5 +37,23 @@ public class Products {
 
     public void setPrice(double price) {
         this.price = price;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Products product = (Products) o;
+        return Double.compare(product.price, price) == 0 &&
+                Objects.equals(name, product.name) &&
+                Objects.equals(variant, product.variant);
+    }
+
+    public boolean equalsWithoutVariant(Object o){
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Products product = (Products) o;
+        return Double.compare(product.price, price) == 0 &&
+                Objects.equals(name, product.name);
     }
 }

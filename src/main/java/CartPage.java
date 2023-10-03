@@ -1,3 +1,4 @@
+import models.Products;
 import org.openqa.selenium.By;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
@@ -41,31 +42,31 @@ public class CartPage {
             return false;
         }
     }
-    public List<List<String>> getAllCartProducts(){
+    public List<Products> getAllCartProducts(){
         List<WebElement> cartProducts = cartProducts();
-        List<List<String>> addedProducts = new ArrayList<>();
-        for (int i = 0; i < cartProducts.size() ; i++){
-            List<String> productInfo = new ArrayList<>();
-            productInfo.add(cartProducts.get(i).findElement(By.xpath(".//*[contains(@data-zta, 'productName')]")).getText());
-            productInfo.add(cartProducts.get(i).findElement(By.xpath(".//*[contains(@data-zta, 'productVariant')]")).getText().substring(2));
-            productInfo.add(cartProducts.get(i).findElement(By.xpath(".//*[contains(@data-zta, 'productStandardPriceAmount')]")).getText().substring(1));
+        List<Products> addedProducts = new ArrayList<>();
+        for (WebElement cartProduct : cartProducts) {
+            String productName = cartProduct.findElement(By.xpath(".//*[contains(@data-zta, 'productName')]")).getText();
+            String productVariant = cartProduct.findElement(By.xpath(".//*[contains(@data-zta, 'productVariant')]")).getText().substring(2);
+            Double productPrice = Double.parseDouble(cartProduct.findElement(By.xpath(".//*[contains(@data-zta, 'productStandardPriceAmount')]")).getText().substring(1));
+            Products productInfo = new Products(productName, productVariant, productPrice);
             addedProducts.add(productInfo);
         }
         return addedProducts;
     }
 
-    public List<List<String>> getAllCartProductPriceDesc(){
-        List<List<String>> allCartProducts = getAllCartProducts();
-        allCartProducts.sort(Comparator.comparing(list -> Double.parseDouble(list.get(2)), Comparator.reverseOrder()));
+    public List<Products> getAllCartProductPriceDesc(){
+        List<Products> allCartProducts = getAllCartProducts();
+        allCartProducts.sort(Comparator.comparing(Products::getPrice, Comparator.reverseOrder()));
         return allCartProducts;
     }
 
     public double getCartProductsTotalPrice(){
         BigDecimal productTotal = new BigDecimal(0);
-        List<List<String>> products = getAllCartProductPriceDesc();
+        List<Products> products = getAllCartProductPriceDesc();
 
-        for (int i = 0 ; i < products.size() ; i++) {
-            productTotal = productTotal.add(new BigDecimal(products.get(i).get(2)));
+        for (Products product : products) {
+            productTotal = productTotal.add(BigDecimal.valueOf(product.getPrice()));
         }
         productTotal = productTotal.setScale(2, BigDecimal.ROUND_HALF_UP);
         return productTotal.doubleValue();
@@ -112,36 +113,37 @@ public class CartPage {
         }
     }
 
-    public boolean deleteProductFromCartByPrice(String price){
+    public boolean deleteProductFromCartByPrice(Double priceValue){
         WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(1));
+        String price = priceValue.toString();
         price = "€" + price;
 
 
-            List<WebElement> matchingProducts = webDriver.findElements(By.xpath("//div[@data-zta='articleQuantitySubtotal']//*[contains(text(), '" + price + "')]"));
-            if (matchingProducts.isEmpty()) {
-                return false;
-            }
+        List<WebElement> matchingProducts = webDriver.findElements(By.xpath("//div[@data-zta='articleQuantitySubtotal']//*[contains(text(), '" + price + "')]"));
+        if (matchingProducts.isEmpty()) {
+            return false;
+        }
 
-            for (WebElement matchingProduct : matchingProducts) {
-                WebElement lineItem = matchingProduct.findElement(By.xpath("ancestor::article[@data-zta='standard_article']"));
+        for (WebElement matchingProduct : matchingProducts) {
+            WebElement lineItem = matchingProduct.findElement(By.xpath("ancestor::article[@data-zta='standard_article']"));
 
+            try {
+                WebElement qtyDropdown = lineItem.findElement(By.xpath(".//*[contains(@data-zta, 'quantityPickerSelect')]"));
+                Select dropdown = new Select(qtyDropdown);
+                dropdown.selectByVisibleText("0");
+            } catch (Exception e1) {
+                // qtyDropdown is not present, finding qtyMinusButton
                 try {
-                    WebElement qtyDropdown = lineItem.findElement(By.xpath(".//*[contains(@data-zta, 'quantityPickerSelect')]"));
-                    Select dropdown = new Select(qtyDropdown);
-                    dropdown.selectByVisibleText("0");
-                } catch (Exception e1) {
-                    // qtyDropdown is not present, finding qtyMinusButton
-                    try {
-                        WebElement qtyMinusButton = lineItem.findElement(By.xpath(".//*[contains(@data-zta, 'quantityStepperDecrementButton')]"));
-                        qtyMinusButton.click();
-                    } catch (Exception e2) {
-                        System.out.println("Deleting the Product from cart is not possible");
-                        return false;
-                    }
-
+                    WebElement qtyMinusButton = lineItem.findElement(By.xpath(".//*[contains(@data-zta, 'quantityStepperDecrementButton')]"));
+                    qtyMinusButton.click();
+                } catch (Exception e2) {
+                    System.out.println("Deleting the Product from cart is not possible");
+                    return false;
                 }
+
             }
-        return true;
+        }
+    return true;
     }
 
     public boolean deleteAlertDisplayed(){
@@ -155,24 +157,23 @@ public class CartPage {
         }
     }
 
-    public List<List<String>> addProductsFromRecommendations(int numberOfProductsToAdd) throws InterruptedException {
+    public List<Products> addProductsFromRecommendations(int numberOfProductsToAdd) throws InterruptedException {
         WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[@id='checkout-frontend']//div[contains(@class, 'recommendations-slider-module_wrapper__gSjnL')]")));
         List<WebElement> sliders = webDriver.findElements(By.xpath("//*[@id='checkout-frontend']//div[contains(@class, 'recommendations-slider-module_wrapper__gSjnL')]"));
         WebElement recommendationSlider = sliders.get(1);
-        List<List<String>> addedProducts = new ArrayList<>();
+        List<Products> addedProducts = new ArrayList<>();
         for (int i = 0; i < numberOfProductsToAdd ; i++){
-            List<String> productInfo = new ArrayList<>();
             WebElement recommendedProduct = recommendationSlider.findElement(By.xpath(".//*[contains(@class, 'splide__slide') and not(contains(@aria-hidden, 'true'))]"));
             String productName = recommendedProduct.findElement(By.xpath(".//*[contains(@data-zta, 'P1UIC')]")).getText();
             //compensating for the tag New that some products might have
-            productInfo.add(productName.endsWith("new") ? productName.substring(0, productName.length() - 3).trim() : productName);
+            productName = productName.endsWith("new") ? productName.substring(0, productName.length() - 3).trim() : productName;
             //Variant is not displayed, adding "Unknown as the variant"
-            //productInfo.add(allProducts.get(i).findElement(By.xpath(".//*[contains(@class, 'ProductListItemVariant-module_variantDescription__36Mpm')]")).getText());
-            productInfo.add("Unknown");
+            String productVariant = "Unknown";
             String productPrice = recommendedProduct.findElement(By.xpath(".//*[contains(@class, 'z-price__amount')]")).getText();
             productPrice = productPrice.startsWith("Now ") ? productPrice.substring(5) : productPrice.substring(1);
-            productInfo.add(productPrice);
+            Double productPriceValue = Double.parseDouble(productPrice);
+            Products productInfo = new Products(productName, productVariant, productPriceValue);
             addedProducts.add(productInfo);
 
             recommendedProduct.findElement(By.xpath(".//*[contains(@class, 'z-btn')]")).click();
@@ -187,41 +188,42 @@ public class CartPage {
         return addedProducts;
     }
 
-    public boolean incrementProductQtyByPrice(String price, Integer qtyToIncrease){
+    public boolean incrementProductQtyByPrice(Double priceValue, Integer qtyToIncrease){
         WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(1));
+        String price = priceValue.toString();
         price = "€" + price;
 
 
-            List<WebElement> matchingProducts = webDriver.findElements(By.xpath("//div[@data-zta='articleQuantitySubtotal']//*[contains(text(), '" + price + "')]"));
-            if (matchingProducts.isEmpty()) {
-                return false;
-            }
+        List<WebElement> matchingProducts = webDriver.findElements(By.xpath("//div[@data-zta='articleQuantitySubtotal']//*[contains(text(), '" + price + "')]"));
+        if (matchingProducts.isEmpty()) {
+            return false;
+        }
 
-            for (WebElement matchingProduct : matchingProducts) {
-                WebElement lineItem = matchingProduct.findElement(By.xpath("ancestor::article[@data-zta='standard_article']"));
+        for (WebElement matchingProduct : matchingProducts) {
+            WebElement lineItem = matchingProduct.findElement(By.xpath("ancestor::article[@data-zta='standard_article']"));
 
+            try {
+                WebElement qtyDropdown = lineItem.findElement(By.xpath(".//*[contains(@data-zta, 'quantityPickerSelect')]"));
+                Select dropdown = new Select(qtyDropdown);
+                Integer currentQty = Integer.parseInt(dropdown.getFirstSelectedOption().getText());
+                Integer newQty = currentQty + qtyToIncrease;
+                dropdown.selectByVisibleText(newQty.toString());
+                wait.until(ExpectedConditions.numberOfElementsToBe(By.xpath("//*[@id='checkout-frontend']//div[@class='beMKS6MTj3RKepGT1hvS']"),0));
+            } catch (Exception e1) {
+                // qtyDropdown is not present, finding qtyPlusButton
                 try {
-                    WebElement qtyDropdown = lineItem.findElement(By.xpath(".//*[contains(@data-zta, 'quantityPickerSelect')]"));
-                    Select dropdown = new Select(qtyDropdown);
-                    Integer currentQty = Integer.parseInt(dropdown.getFirstSelectedOption().getText());
-                    Integer newQty = currentQty + qtyToIncrease;
-                    dropdown.selectByVisibleText(newQty.toString());
-                    wait.until(ExpectedConditions.numberOfElementsToBe(By.xpath("//*[@id='checkout-frontend']//div[@class='beMKS6MTj3RKepGT1hvS']"),0));
-                } catch (Exception e1) {
-                    // qtyDropdown is not present, finding qtyPlusButton
-                    try {
-                        for (int i = 0; i < qtyToIncrease ; i++){
-                            WebElement qtyPlusButton = lineItem.findElement(By.xpath(".//*[contains(@data-zta, 'quantityStepperIncrementButton')]"));
-                            qtyPlusButton.click();
-                            wait.until(ExpectedConditions.numberOfElementsToBe(By.xpath("//*[@id='checkout-frontend']//div[@class='beMKS6MTj3RKepGT1hvS']"),0));
-                        }
-
-                    } catch (Exception e2) {
-                        System.out.println("Incrementing the Product Qty from cart is not possible");
+                    for (int i = 0; i < qtyToIncrease ; i++){
+                        WebElement qtyPlusButton = lineItem.findElement(By.xpath(".//*[contains(@data-zta, 'quantityStepperIncrementButton')]"));
+                        qtyPlusButton.click();
+                        wait.until(ExpectedConditions.numberOfElementsToBe(By.xpath("//*[@id='checkout-frontend']//div[@class='beMKS6MTj3RKepGT1hvS']"),0));
                     }
 
+                } catch (Exception e2) {
+                    System.out.println("Incrementing the Product Qty from cart is not possible");
                 }
+
             }
+        }
         return true;
     }
 
