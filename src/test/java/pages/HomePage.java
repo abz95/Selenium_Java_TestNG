@@ -1,58 +1,54 @@
 package pages;
 
 import model.Product;
-import org.openqa.selenium.TimeoutException;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.Cookie;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 public class HomePage {
-    WebDriver webDriver;
+    private final WebDriver webDriver;
+    private final By productBoxLocator = By.xpath("//*[@id=\"shop-main-navigation\"]//div[@data-zta='product-box-list']");
+    private final By agreeButtonLocator = By.id("onetrust-accept-btn-handler");
+    private final By productNameLocator = By.xpath(".//*[contains(@data-zta, 'product-link')]");
+    private final By productVariantLocator = By.xpath(".//*[contains(@class, 'ProductListItemVariant-module_variantDescription__36Mpm')]");
+    private final By productPriceLocator = By.xpath(".//*[contains(@class, 'z-price__amount')]");
+    private final By productAddToBasketLocator = By.xpath(".//*[contains(@title, 'Add to basket')]");
+    private final By cartButtonLocator = By.xpath("//*[@id=\"shop-header\"]/div[2]/div[4]/div/a");
+    private final By cartItemCountLocator = By.xpath("//*[@id=\"shop-header\"]//span[@data-testid='MiniCartItemsCount']");
 
     public HomePage(WebDriver webDriver) {
         this.webDriver = webDriver;
     }
 
     private List<WebElement> getAllProductsOnPage(){
-        return webDriver.findElements(By.xpath("//*[@id=\"shop-main-navigation\"]//div[@data-zta='product-box-list']"));
+        return webDriver.findElements(productBoxLocator);
     }
 
     public List<Product> addFirstVariantOfProductv1(int numberOfProductsToAdd){
         List<WebElement> allProducts = getAllProductsOnPage();
         List<Product> addedProducts = new ArrayList<>();
         for (int i = 0; i < numberOfProductsToAdd ; i++){
-            String productName = allProducts.get(i).findElement(By.xpath(".//*[contains(@data-zta, 'product-link')]")).getText();
+            String productName = allProducts.get(i).findElement(productNameLocator).getText();
             //compensating for the tag New that some products might have
             productName = productName.endsWith("new") ? productName.substring(0, productName.length() - 3).trim() : productName;
-            String productVariant = allProducts.get(i).findElement(By.xpath(".//*[contains(@class, 'ProductListItemVariant-module_variantDescription__36Mpm')]")).getText();
-            Double productPrice = Double.parseDouble(allProducts.get(i).findElement(By.xpath(".//*[contains(@class, 'z-price__amount')]")).getText().substring(1));
+            String productVariant = allProducts.get(i).findElement(productVariantLocator).getText();
+            Double productPrice = Double.parseDouble(allProducts.get(i).findElement(productPriceLocator).getText().substring(1));
             Product productInfo = new Product(productName, productVariant, productPrice);
             addedProducts.add(productInfo);
-            allProducts.get(i).findElement(By.xpath(".//*[contains(@title, 'Add to basket')]")).click();
+            allProducts.get(i).findElement(productAddToBasketLocator).click();
             waitForAddToCartTick(i+1);
 
         }
         return addedProducts;
     }
-    public WebElement selectProduct(int productNumber, int variationNumber) {
-        String basePathProducts = "//*[@id=\"shop-main-navigation\"]/div[6]/div[" + productNumber + "]/div/div/div[3]/div[2]/div[1]/" ;
-        return webDriver.findElement(By.xpath(basePathProducts+"div["+ variationNumber + "]/form/div[2]/button"));
-    }
+
     public void clickAgree(){
-        WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(5));
-        try {
-            WebElement agreeButton = wait.until(ExpectedConditions.elementToBeClickable(By.id("onetrust-accept-btn-handler")));
-            agreeButton.click();
-        } catch (TimeoutException e) {
-            System.out.println("Cookies window not displayed for new session");
-        }
+        WebElement agreeButton = clickablityOf(agreeButtonLocator);
+        agreeButton.click();
     }
 
     public boolean waitForAddToCartTick(int numberOfProducts){
@@ -62,27 +58,48 @@ public class HomePage {
     }
 
     public void openCart(){
-        WebElement cartButton = webDriver.findElement(By.xpath("//*[@id=\"shop-header\"]/div[2]/div[4]/div/a"));
+        WebElement cartButton = visiblityOf(cartButtonLocator);
         cartButton.click();
     }
 
     public int getCartButtonItemCount(){
-        String itemCount = webDriver.findElement(By.xpath("//*[@id=\"shop-header\"]//span[@data-testid='MiniCartItemsCount']")).getText();
+        String itemCount = visiblityOf(cartItemCountLocator).getText();
         return Integer.parseInt(itemCount);
     }
-    //change to private
+
     public Cookie getCookie(String cookieName){
         return webDriver.manage().getCookieNamed(cookieName);
     }
 
     public void setCookie(String cookieName, String cookieValue){
-        if (getCookie(cookieName) == null)
+        if (getCookie(cookieName) != null)
         {
             webDriver.manage().deleteCookie(getCookie(cookieName));
         }
-
         Cookie cookie = new Cookie(cookieName,cookieValue);
         webDriver.manage().addCookie(cookie);
+    }
+
+    private WebElement clickablityOf(By element){
+        try {
+            WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(5));
+            return wait.until(ExpectedConditions.elementToBeClickable(element));
+        }
+        catch (TimeoutException | NoSuchElementException e){
+            System.out.println("Element wasn't clickable or visible on the page");
+            throw (e);
+        }
+    }
+
+    private WebElement visiblityOf(By element){
+        try {
+            WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(5));
+            return wait.until(ExpectedConditions.visibilityOfElementLocated(element));
+        }
+        catch (TimeoutException | NoSuchElementException e){
+            System.out.println("Element wasn't visible on the page");
+            throw (e);
+        }
     }
 
 }

@@ -11,7 +11,6 @@ import org.openqa.selenium.By;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.testng.Assert;
 import org.testng.asserts.SoftAssert;
 import org.testng.annotations.AfterTest;
@@ -23,19 +22,25 @@ import pages.HomePage;
 
 public class CartTest
 {
-
-    public static WebDriver webDriver = new ChromeDriver();
-    HomePage homePage = new HomePage(webDriver);
-    CartPage cartPage = new CartPage(webDriver);
-
-    SoftAssert softAssert = new SoftAssert();
+    private WebDriver webDriver;
+    private HomePage homePage;
+    private CartPage cartPage;
+    private SoftAssert softAssert;
 
     @BeforeTest
     void Setup()
     {
+        System.setProperty("webdriver.chrome.driver", "src/main/resources/chromedriver.exe");
+        webDriver = new ChromeDriver();
+        homePage = new HomePage(webDriver);
+        cartPage = new CartPage(webDriver);
+        softAssert = new SoftAssert();
+
         //System.setProperty("webDriver.chrome.driver",System.getProperty("user.dir") + "/src/test/chromedriver/chromedriver.exe")
         webDriver.manage().window().maximize();
+
         //webDriver.get("https://www.google.com");
+
     }
 
     @Test
@@ -96,15 +101,14 @@ public class CartTest
 
         cartPage.changeShippingCountry("Portugal","5000");
 
-        cartPage.deleteProductFromCartByPrice(descPriceProducts.get(0).getPrice());
-        Assert.assertTrue(cartPage.deleteAlertDisplayed());
-        List<Product> recommendationProducts = new ArrayList<>();
+        //cartPage.deleteProductFromCartByPrice(descPriceProducts.get(0).getPrice());
+        //Assert.assertTrue(cartPage.deleteAlertDisplayed());
+        /*List<Product> recommendationProducts = new ArrayList<>();
         try {
             recommendationProducts = cartPage.addProductsFromRecommendations(0);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        }
-
+        }*/
 
 
         /*List<Products> allProductsAdded = new ArrayList<>();
@@ -118,6 +122,9 @@ public class CartTest
         descPriceProducts = cartPage.getAllCartProductPriceDesc();
         //cartPage.deleteProductFromCartByName(descPriceProducts.get(0).get(0));
         cartPage.incrementProductQtyByPrice(descPriceProducts.get(descPriceProducts.size()-1).getPrice(),3);
+
+        cartPage.deleteProductFromCartByPrice((descPriceProducts.get(descPriceProducts.size()-1).getPrice())*4);
+        Assert.assertTrue(cartPage.deleteAlertDisplayed());
 
         Assert.assertEquals(cartPage.getCartSubTotal() + cartPage.getShippingFees(),cartPage.getCartAmountTotal());
 
