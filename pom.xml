@@ -22,6 +22,21 @@
             <version>4.13.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>3.1.2</version>
+            <type>maven-plugin</type>
+        </dependency>
+
+        <dependency>
+            <groupId>com.aventstack</groupId>
+            <artifactId>extentreports</artifactId>
+            <version>4.1.5</version> <!-- Make sure the version is up to date -->
+        </dependency>
+
+
+
     </dependencies>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -29,5 +44,19 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.1.2</version> <!-- Use the appropriate version -->
+                <configuration>
+                    <suiteXmlFiles>
+                        <suiteXmlFile>testng.xml</suiteXmlFile> <!-- Adjust the path accordingly -->
+                    </suiteXmlFiles>
+                </configuration>
 
+            </plugin>
+        </plugins>
+    </build>
 </project>

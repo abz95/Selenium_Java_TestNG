@@ -1,4 +1,5 @@
 package model;
+import java.util.List;
 import java.util.Objects;
 
 public class Product {
@@ -39,6 +40,20 @@ public class Product {
         this.price = price;
     }
 
+    public static boolean compareProductListsWithoutVariant(List<Product> listA, List<Product> listB) {
+        if(listA.size()!=listB.size())
+            return false;
+
+        for (int i = 0; i < listA.size(); i++) {
+            Product productA = listA.get(i);
+            Product productB = listB.get(i);
+
+            if (!productA.equalsWithoutVariant(productB)) {
+                return false;
+            }
+        }
+        return true;
+    }
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -55,5 +70,15 @@ public class Product {
         Product product = (Product) o;
         return Double.compare(product.price, price) == 0 &&
                 Objects.equals(name, product.name);
+    }
+
+    public static int countProductsByPrice(List<Product> products, double price) {
+        int count = 0;
+        for (Product product : products) {
+            if (product.getPrice() == price) {
+                count++;
+            }
+        }
+        return count;
     }
 }

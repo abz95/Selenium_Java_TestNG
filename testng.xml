@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="Cart Page Tests">
+    <listeners>
+        <listener class-name="ExtentTestNGITestListener"/>
+    </listeners>
+    <test verbose="2" preserve-order="true" name="C:/Users/quresabu/IdeaProjects/Selenium_TestNG">
+        <classes>
+            <class name="tests.CartTest">
+                <methods>
+                    <include name="emptyCartTest" />
+                    <include name="basketCountTest"/>
+                    <include name="shippingMethodTest"/>
+                    <include name="productAddedTest"/>
+                    <include name="productPriceSubTotalTest"/>
+                    <include name="productPriceTotalTest"/>
+                    <include name="deleteFromCartTest"/>
+                    <include name="incrementFromCartTest"/>
+                    <include name="minimumPriceNotMetTest"/>
+                    <include name="deleteAllProductsTest"/>
+                    <include name="addProductsFromRecommendationTest"/>
+                    <include name="cartSessionTest"/>
+                    <include name="freeShippingTest"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

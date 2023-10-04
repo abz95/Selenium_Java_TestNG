@@ -23,10 +23,11 @@ public class CartPage {
     private final By productNameLocator = By.xpath(".//*[contains(@data-zta, 'productName')]");
     private final By productVariantLocator = By.xpath(".//*[contains(@data-zta, 'productVariant')]");
     private final By productPriceLocator = By.xpath(".//*[contains(@data-zta, 'productStandardPriceAmount')]");
-    private final By cartSubTotalLocator = By.xpath("//*[@id=\"cartSummary\"]//p[@data-zta='overviewSubTotalValue']");
-    private final By cartShippingFeesLocator = By.xpath("//*[@id=\"cartSummary\"]//p[@data-zta='shippingCostValueOverview']");
-    private final By cartTotalAmountLocator = By.xpath("//*[@id=\"cartSummary\"]//h3[@data-zta='total__price__value']");
-    private final By deleteAlertLocator = By.xpath("//*[@id=\"checkout-frontend\"]//div[@data-zta='reAddArticleAlert']");
+    private final By cartSubTotalLocator = By.xpath("//*[@id='cartSummary']//p[@data-zta='overviewSubTotalValue']");
+    private final By cartShippingFeesLocator = By.xpath("//*[@id='cartSummary']//p[@data-zta='shippingCostValueOverview']");
+    private final By cartTotalAmountLocator = By.xpath("//*[@id='cartSummary']//h3[@data-zta='total__price__value']");
+    private final By deleteAlertLocator = By.xpath("//*[@id='checkout-frontend']//div[@data-zta='reAddArticleAlert']");
+    private final By deleteEmptyAlertLocator = By.xpath("//*[@id='checkout-frontend']//div[@data-zta='removedArticleMsg']");
     private final By recommendationsLocator = By.xpath("//*[@id='checkout-frontend']//div[contains(@class, 'recommendations-slider-module_wrapper__gSjnL')]");
     private final By recommendedProductLocator = By.xpath(".//*[contains(@class, 'splide__slide') and not(contains(@aria-hidden, 'true'))]");
     private final By recommendedProductNameLocator = By.xpath(".//*[contains(@data-zta, 'P1UIC')]");
@@ -41,6 +42,8 @@ public class CartPage {
     private final By productQtyInputLocator = By.xpath(".//*[contains(@data-zta, 'quantityStepperInput')]");
     private final By productQtyDropdownLocator = By.xpath(".//*[contains(@data-zta, 'quantityPickerSelect')]");
     private final By productChangeAnimatorLocator = By.xpath("//*[@id='checkout-frontend']//div[@class='beMKS6MTj3RKepGT1hvS']");
+    private final By checkoutButtonLocator = By.xpath("//*[@id='cartSummary']//button[@data-zta='gotoPreviewBottom']");
+    private final By checkoutWarningLocator = By.xpath("//*[@id='cartSummary']//div[@data-zta='alertText']//p[@data-zta='P1UIC']");
 
 
     public CartPage(WebDriver webDriver) {
@@ -49,10 +52,12 @@ public class CartPage {
 
     //make private maybe later
     public List<WebElement> cartProducts(){
+        visiblityOf(cartProductsLocator);
         return webDriver.findElements(cartProductsLocator);
     }
 
     public boolean isCartEmpty(){
+        visiblityOf(deleteEmptyAlertLocator);
         WebElement cartEmptyText = visiblityOf(cartEmptyTextLocator);
         return cartEmptyText.getText().equals("Your shopping basket is empty");
     }
@@ -255,9 +260,22 @@ public class CartPage {
         return shippingCountry.getText();
     }
 
+    public void clickCheckoutButton(){
+        WebElement checkoutButton = visiblityOf(checkoutButtonLocator);
+        checkoutButton.click();
+    }
+
+    public boolean mimimumAmountNotMet(){
+        WebElement checkoutButton = visiblityOf(checkoutButtonLocator);
+        WebElement checkoutWarning = visiblityOf(checkoutWarningLocator);
+        String expectedWarningText = "Please note: the minimum order value is €19.00 (without shipping costs)";
+
+        return (getCartSubTotal() < 19 && !checkoutButton.isEnabled() && expectedWarningText.equals(checkoutWarning.getText()));
+    }
+
     private WebElement clickablityOf(By element){
         try {
-            WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(5));
+            WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(10));
             return wait.until(ExpectedConditions.elementToBeClickable(element));
         }
         catch (TimeoutException | NoSuchElementException e){
@@ -268,7 +286,7 @@ public class CartPage {
 
     private WebElement visiblityOf(By element){
         try {
-            WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(5));
+            WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(10));
             return wait.until(ExpectedConditions.visibilityOfElementLocated(element));
         }
         catch (TimeoutException | NoSuchElementException e){

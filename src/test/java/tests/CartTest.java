@@ -2,20 +2,16 @@ package tests;
 
 import model.Product;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.By;
-import java.time.Duration;
+
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.testng.Assert;
+import org.testng.annotations.*;
 import org.testng.asserts.SoftAssert;
-import org.testng.annotations.AfterTest;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Test;
 import pages.CartPage;
 import pages.HomePage;
 
@@ -26,8 +22,9 @@ public class CartTest
     private HomePage homePage;
     private CartPage cartPage;
     private SoftAssert softAssert;
+    private String startingUrl;
 
-    @BeforeTest
+    @BeforeMethod
     void Setup()
     {
         System.setProperty("webdriver.chrome.driver", "src/main/resources/chromedriver.exe");
@@ -35,119 +32,237 @@ public class CartTest
         homePage = new HomePage(webDriver);
         cartPage = new CartPage(webDriver);
         softAssert = new SoftAssert();
-
-        //System.setProperty("webDriver.chrome.driver",System.getProperty("user.dir") + "/src/test/chromedriver/chromedriver.exe")
+        startingUrl = "https://www.zooplus.com/shop/cats/dry_cat_food";
         webDriver.manage().window().maximize();
-
-        //webDriver.get("https://www.google.com");
-
     }
 
-    @Test
-    void productClass(){
-        WebDriverWait wait = new WebDriverWait(webDriver,Duration.ofSeconds(10));
-        webDriver.get("https://www.zooplus.com/shop/cats/dry_cat_food");
-
+    @Test(description = "1. This test checks that the cart is displayed as empty when we open it without adding any products")
+    public void emptyCartTest(){
+        webDriver.get(startingUrl);
         homePage.clickAgree();
-
-        List<Product> productsAdded = homePage.addFirstVariantOfProductv1(3);
-        String url = webDriver.getCurrentUrl();
+        homePage.openCart();
+        Assert.assertTrue(webDriver.getCurrentUrl().contains("/cart"));
+        Assert.assertTrue(cartPage.isCartEmpty());
     }
 
-    @Test
-    void urlCheck(){
-        String url = webDriver.getCurrentUrl();
-        WebDriverWait wait = new WebDriverWait(webDriver,Duration.ofSeconds(10));
-        WebElement searchBar = wait.until(ExpectedConditions.elementToBeClickable(webDriver.findElement((By.name("q")))));
-        searchBar.sendKeys("Abuzar Qureshi");
-        WebElement okButton = wait.until(ExpectedConditions.elementToBeClickable(webDriver.findElement((By.name("btnK")))));
-        okButton.click();
-        WebElement recentsPage = wait.until(ExpectedConditions.visibilityOf(webDriver.findElement((By.id("rcnt")))));
-        try {
-            WebElement myImage = wait.until(ExpectedConditions.visibilityOf(webDriver.findElement((By.xpath("//*[@id=\"dimg_19\"]")))));
-        } catch (NoSuchElementException e) {
-            Assert.fail("Image not found");
-            // You can choose to log the error, take a screenshot, or perform any other appropriate action here
-        }
-
-    }
-
-    @Test
-    void ProductsAddv1(){
-        WebDriverWait wait = new WebDriverWait(webDriver,Duration.ofSeconds(10));
-        webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(4));
-        webDriver.get("https://www.zooplus.com/shop/cats/dry_cat_food");
-
+    @Test(description = "2. This test validates that Shopping Basket Count is correctly displayed when adding products")
+    public void basketCountTest(){
+        webDriver.get(startingUrl);
         homePage.clickAgree();
+        int productCount = 4;
+        homePage.addFirstVariantOfProduct(productCount);
+        Assert.assertEquals(homePage.getCartButtonItemCount(),productCount);
+    }
 
-        List<Product> productsAdded = homePage.addFirstVariantOfProductv1(2);
+    @Test(description = "3. This test validates that Shipping country is changed successfully and relevant fees is applied")
+    public void shippingMethodTest(){
+        String country = "Portugal";
+        String zipCode = "5000";
+        double expectedFees = 6.99;
+        webDriver.get(startingUrl);
+        homePage.clickAgree();
+        int productCount = 2;
+        homePage.addFirstVariantOfProduct(productCount);
+        homePage.openCart();
+        cartPage.changeShippingCountry(country, zipCode);
+        Assert.assertEquals(cartPage.getShippingFees(),expectedFees);
+    }
 
-        //fix asserts arguments
-        //softAssert.assertEquals(2,homePage.getCartButtonItemCount());
+    @Test(description = "4. This test validates that all products added from Products page are present in the cart")
+    public void productAddedTest(){
+        webDriver.get(startingUrl);
+        homePage.clickAgree();
+        int productCount = 4;
+        List<Product> productsAdded = homePage.addFirstVariantOfProduct(productCount);
+        homePage.openCart();
+        List<Product> cartProducts = cartPage.getAllCartProducts();
+        Assert.assertEquals(productsAdded.size(),cartProducts.size());
+        Assert.assertTrue(cartProducts.equals(productsAdded));
+    }
 
+    @Test(description = "5. This test validates that all added products total price is correctly reflected in SubTotal Amount")
+    public void productPriceSubTotalTest(){
+        double subTotalDisplayed, subTotalCalculatedByProducts;
+        webDriver.get(startingUrl);
+        homePage.clickAgree();
+        int productCount = 4;
+        List<Product> productsAdded = homePage.addFirstVariantOfProduct(productCount);
+        homePage.openCart();
+        subTotalCalculatedByProducts = cartPage.getCartProductsTotalPrice();
+        subTotalDisplayed = cartPage.getCartSubTotal();
+        Assert.assertEquals(subTotalCalculatedByProducts, subTotalDisplayed);
+    }
+
+    @Test(description = "6. This test validates that Sub-Total + Shipping Fees is equals to Total Cart Price displayed")
+    public void productPriceTotalTest(){
+        double subTotalDisplayed, shippingFeesDisplayed, totalPrice;
+        webDriver.get(startingUrl);
+        homePage.clickAgree();
+        int productCount = 2;
+        List<Product> productsAdded = homePage.addFirstVariantOfProduct(productCount);
+        homePage.openCart();
+        shippingFeesDisplayed = cartPage.getShippingFees();
+        subTotalDisplayed = cartPage.getCartSubTotal();
+        totalPrice = cartPage.getCartAmountTotal();
+        Assert.assertEquals(shippingFeesDisplayed + subTotalDisplayed, totalPrice);
+    }
+
+    @Test(description = "7. This test validates that product can be deleted/removed from cart (Highest Price)")
+    public void deleteFromCartTest() throws InterruptedException {
+        double highestPrice, totalPriceBefore, totalPriceAfter, cartCountBefore, cartCountAfter;
+        webDriver.get(startingUrl);
+        homePage.clickAgree();
+        int productCount = 4;
+        List<Product> productsAdded = homePage.addFirstVariantOfProduct(productCount);
+        homePage.openCart();
+        List<Product> cartProducts = cartPage.getAllCartProductPriceDesc();
+        totalPriceBefore = cartPage.getCartAmountTotal();
+        cartCountBefore = cartProducts.size();
+        highestPrice = cartProducts.get(0).getPrice();
+        int productsToBeDeleted = Product.countProductsByPrice(cartProducts, highestPrice);
+        Assert.assertTrue(cartPage.deleteProductFromCartByPrice(highestPrice));
+        Assert.assertTrue(cartPage.deleteAlertDisplayed());
+        TimeUnit.SECONDS.sleep(3);
+        cartProducts = cartPage.getAllCartProductPriceDesc();
+        totalPriceAfter = cartPage.getCartAmountTotal();
+        cartCountAfter = cartProducts.size();
+        BigDecimal expectedTotal = new BigDecimal(totalPriceBefore - (highestPrice * productsToBeDeleted));
+        expectedTotal = expectedTotal.setScale(2, BigDecimal.ROUND_HALF_UP);
+        double expectedTotalRounded = expectedTotal.doubleValue();
+
+        Assert.assertEquals(totalPriceAfter, expectedTotalRounded);
+        Assert.assertEquals(cartCountAfter, cartCountBefore - productsToBeDeleted);
+    }
+
+    @Test(description = "8. This test validates that product can be incremented in cart (Lowest Price)")
+    public void incrementFromCartTest() throws InterruptedException {
+        double totalPriceBefore, totalPriceAfter, cartCountBefore, cartCountAfter, lowestPrice;
+        int qtyToIncrease = 1;
+        webDriver.get(startingUrl);
+        homePage.clickAgree();
+        int productCount = 4;
+        List<Product> productsAdded = homePage.addFirstVariantOfProduct(productCount);
+        homePage.openCart();
+        List<Product> cartProducts = cartPage.getAllCartProductPriceDesc();
+        totalPriceBefore = cartPage.getCartAmountTotal();
+        cartCountBefore = cartProducts.size();
+        lowestPrice = cartProducts.get(cartProducts.size()-1).getPrice();
+        int productsToBeIncremented = Product.countProductsByPrice(cartProducts, lowestPrice);
+        Assert.assertTrue(cartPage.incrementProductQtyByPrice(lowestPrice, qtyToIncrease));
+        totalPriceAfter = cartPage.getCartAmountTotal();
+        BigDecimal expectedTotal = new BigDecimal(totalPriceBefore + (productsToBeIncremented*(lowestPrice*qtyToIncrease)));
+        expectedTotal = expectedTotal.setScale(2, BigDecimal.ROUND_HALF_UP);
+        double expectedTotalRounded = expectedTotal.doubleValue();
+        Assert.assertEquals(totalPriceAfter, expectedTotalRounded);
+    }
+
+    @Test(description = "9. This test validates that Order Value excluding shipping (Sub-Total) has to be greater than 19 to checkout")
+    public void minimumPriceNotMetTest(){
+        webDriver.get(startingUrl);
+        homePage.clickAgree();
+        int productCount = 1;
+        List<Product> productsAdded = homePage.addFirstVariantOfProduct(productCount);
         homePage.openCart();
 
-        WebElement cartFront = wait.until(ExpectedConditions.visibilityOf(webDriver.findElement((By.id("checkout-frontend")))));
-        Assert.assertTrue(webDriver.getCurrentUrl().contains("cart"));
-        List<Product> productsInCart = cartPage.getAllCartProducts();
-        //Assert.assertEquals(productsAdded,productsInCart);
-        Assert.assertTrue(productsAdded.equals(productsInCart));
+        if(productsAdded.get(0).getPrice()>18){
+            Assert.fail("Product Added has met the minimum price");
+        }
+        Assert.assertTrue(cartPage.mimimumAmountNotMet());
+    }
 
-        Assert.assertEquals(cartPage.getCartProductsTotalPrice(),cartPage.getCartSubTotal());
+    @Test(description = "10. This test validates that deleting all products in cart displays empty cart")
+    public void deleteAllProductsTest(){
+        webDriver.get(startingUrl);
+        homePage.clickAgree();
+        int productCount = 1;
+        List<Product> productsAdded = homePage.addFirstVariantOfProduct(productCount);
+        homePage.openCart();
+        List<Product> productsCart = cartPage.getAllCartProducts();
+        Assert.assertTrue(cartPage.deleteProductFromCartByPrice(productsCart.get(0).getPrice()));
+        Assert.assertTrue(cartPage.isCartEmpty());
+    }
 
-        //deleting by name, with the highest price
-        List<Product> descPriceProducts = cartPage.getAllCartProductPriceDesc();
-        //cartPage.deleteProductFromCartByName(descPriceProducts.get(0).getPrice());
-
-        cartPage.changeShippingCountry("Portugal","5000");
-
-        //cartPage.deleteProductFromCartByPrice(descPriceProducts.get(0).getPrice());
-        //Assert.assertTrue(cartPage.deleteAlertDisplayed());
-        /*List<Product> recommendationProducts = new ArrayList<>();
-        try {
-            recommendationProducts = cartPage.addProductsFromRecommendations(0);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }*/
-
-
-        /*List<Products> allProductsAdded = new ArrayList<>();
+    @Test(description = "11. This test validates that we can add more products from Cart's recommendation section")
+    public void addProductsFromRecommendationTest() throws InterruptedException {
+        double subTotalDisplayed, subTotalCalculatedByProducts;
+        int productsToAddRecommendation = 3;
+        webDriver.get(startingUrl);
+        homePage.clickAgree();
+        int productCount = 1;
+        List<Product> productsAdded = homePage.addFirstVariantOfProduct(productCount);
+        homePage.openCart();
+        List<Product> recommendationProducts = cartPage.addProductsFromRecommendations(productsToAddRecommendation);
+        List<Product> allProductsAdded = new ArrayList<>();
         allProductsAdded.addAll(productsAdded);
         allProductsAdded.addAll(recommendationProducts);
-        productsInCart = cartPage.getAllCartProducts();
-        Boolean compare = allProductsAdded.equalsWithoutVariant(productsInCart);*/
+        List<Product> productsInCart = cartPage.getAllCartProducts();
+        subTotalCalculatedByProducts = cartPage.getCartProductsTotalPrice();
+        subTotalDisplayed = cartPage.getCartSubTotal();
+        Assert.assertTrue(Product.compareProductListsWithoutVariant(allProductsAdded,productsInCart));
+        Assert.assertEquals(subTotalCalculatedByProducts, subTotalDisplayed);
+    }
 
-
-
-        descPriceProducts = cartPage.getAllCartProductPriceDesc();
-        //cartPage.deleteProductFromCartByName(descPriceProducts.get(0).get(0));
-        cartPage.incrementProductQtyByPrice(descPriceProducts.get(descPriceProducts.size()-1).getPrice(),3);
-
-        cartPage.deleteProductFromCartByPrice((descPriceProducts.get(descPriceProducts.size()-1).getPrice())*4);
-        Assert.assertTrue(cartPage.deleteAlertDisplayed());
-
-        Assert.assertEquals(cartPage.getCartSubTotal() + cartPage.getShippingFees(),cartPage.getCartAmountTotal());
-
-        System.out.println(homePage.getCookie("sid"));
-
+    @Test(description = "12. This test validates that with 'sid' cookie, we have out cart maintained")
+    public void cartSessionTest() throws InterruptedException {
+        double priceTotalBefore, priceTotalAfter;
+        webDriver.get(startingUrl);
         homePage.setCookie("sid","abuzar-qureshi-test");
-
-        System.out.println(homePage.getCookie("sid"));
-        softAssert.assertAll();
-
-    }
-
-    @Test
-    void CheckEmptyCart()
-    {
-        webDriver.get("https://www.zooplus.com/checkout/cart");
         homePage.clickAgree();
-        Boolean newBool = cartPage.isCartEmpty();
+        //webDriver.navigate().refresh();
+        int productCount = 5;
+        List<Product> productsAdded = homePage.addFirstVariantOfProduct(productCount);
+        homePage.openCart();
+        List<Product> productsCartBefore = cartPage.getAllCartProducts();
+        priceTotalBefore = cartPage.getCartAmountTotal();
+        webDriver.quit();
+
+        WebDriver newWebDriver = new ChromeDriver();
+        newWebDriver.manage().window().maximize();
+        HomePage homePage = new HomePage(newWebDriver);
+        CartPage cartPage = new CartPage(newWebDriver);
+        newWebDriver.get(startingUrl);
+        homePage.clickAgree();
+        homePage.setCookie("sid","abuzar-qureshi-test");
+        //newWebDriver.navigate().refresh();
+        homePage.openCart();
+        List<Product> productsCartAfter = cartPage.getAllCartProducts();
+        priceTotalAfter = cartPage.getCartAmountTotal();
+
+        Assert.assertTrue(productsCartAfter.equals(productsCartBefore));
+        Assert.assertEquals(priceTotalAfter, priceTotalBefore);
+        newWebDriver.quit();
     }
 
-    @AfterTest
+    @Test(description = "13. This test validates that shipping becomes free on orders above certain value")
+    public void freeShippingTest(){
+        double totalPrice = 0;
+        String country = "Belgium";
+        String zipCode = "1731";
+        webDriver.get(startingUrl);
+        homePage.clickAgree();
+        int productCount = 1;
+        do {
+            Product productAdded = homePage.addFirstVariantOfProductNumber(productCount);
+            totalPrice += productAdded.getPrice();
+            productCount++;
+        }
+        while (!(totalPrice > 49));
+
+        homePage.openCart();
+        cartPage.changeShippingCountry(country,zipCode);
+        Assert.assertEquals(cartPage.getShippingFees(),0);
+    }
+
+
+    @AfterMethod
     void Teardown(){
-        webDriver.quit();
+        if (webDriver != null) {
+            try {
+                webDriver.quit();
+            } catch (Exception e) {
+
+            }
+        }
     }
 }
 
