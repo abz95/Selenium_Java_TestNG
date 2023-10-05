@@ -27,7 +27,7 @@ public class CartPage {
     private final By cartShippingFeesLocator = By.xpath("//*[@id='cartSummary']//p[@data-zta='shippingCostValueOverview']");
     private final By cartTotalAmountLocator = By.xpath("//*[@id='cartSummary']//h3[@data-zta='total__price__value']");
     private final By deleteAlertLocator = By.xpath("//*[@id='checkout-frontend']//div[@data-zta='reAddArticleAlert']");
-    private final By deleteEmptyAlertLocator = By.xpath("//*[@id='checkout-frontend']//div[@data-zta='removedArticleMsg']");
+    private final By cartEmptyLocator = By.xpath("//*[@id='checkout-frontend']//section[@data-testid='checkout-empty-cart']");
     private final By recommendationsLocator = By.xpath("//*[@id='checkout-frontend']//div[contains(@class, 'recommendations-slider-module_wrapper__gSjnL')]");
     private final By recommendedProductLocator = By.xpath(".//*[contains(@class, 'splide__slide') and not(contains(@aria-hidden, 'true'))]");
     private final By recommendedProductNameLocator = By.xpath(".//*[contains(@data-zta, 'P1UIC')]");
@@ -57,9 +57,8 @@ public class CartPage {
     }
 
     public boolean isCartEmpty(){
-        visiblityOf(deleteEmptyAlertLocator);
-        WebElement cartEmptyText = visiblityOf(cartEmptyTextLocator);
-        return cartEmptyText.getText().equals("Your shopping basket is empty");
+        WebElement cartEmpty = visiblityOf(cartEmptyLocator);
+        return (cartEmpty != null);
     }
 
     public List<Product> getAllCartProducts(){
@@ -109,6 +108,7 @@ public class CartPage {
     }
     public void deleteProductFromCartByName(String productName) {
         WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(3));
+        int numberOfProductsOnPage = getAllCartProducts().size();
         WebElement lineItem;
         try {
             lineItem = webDriver.findElement(By.xpath("//*[contains(text(), '" + productName + "')]"));
@@ -123,11 +123,13 @@ public class CartPage {
             WebElement qtyDropdown = lineItem.findElement(productQtyDropdownLocator);
             Select dropdown = new Select(qtyDropdown);
             dropdown.selectByVisibleText("0");
+            wait.until(ExpectedConditions.numberOfElementsToBeLessThan(cartProductsLocator,numberOfProductsOnPage));
         } catch (Exception e1) {
-            // qtyDropdown is not present, finding qtyMinusButton
+            // qtyDropdown is not present, finding qtyTextField
             try {
                 WebElement qtyTextField = lineItem.findElement(productQtyInputLocator);
                 qtyTextField.sendKeys(Keys.BACK_SPACE);
+                wait.until(ExpectedConditions.numberOfElementsToBeLessThan(cartProductsLocator,numberOfProductsOnPage));
             } catch (Exception e2) {
                 System.out.println("Deleting the Product from cart is not possible");
                 throw (e2);
@@ -138,6 +140,7 @@ public class CartPage {
 
     public boolean deleteProductFromCartByPrice(Double priceValue){
         WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(3));
+        int numberOfProductsOnPage = getAllCartProducts().size();
         String price = priceValue.toString();
         price = "€" + price;
         List<WebElement> matchingProducts = webDriver.findElements(By.xpath("//div[@data-zta='articleQuantitySubtotal']//*[contains(text(), '" + price + "')]"));
@@ -151,11 +154,13 @@ public class CartPage {
                 WebElement qtyDropdown = lineItem.findElement(productQtyDropdownLocator);
                 Select dropdown = new Select(qtyDropdown);
                 dropdown.selectByVisibleText("0");
+                wait.until(ExpectedConditions.numberOfElementsToBeLessThan(cartProductsLocator,numberOfProductsOnPage));
             } catch (Exception e1) {
-                // qtyDropdown is not present, finding qtyMinusButton
+                // qtyDropdown is not present, finding qtyTextField
                 try {
                     WebElement qtyTextField = lineItem.findElement(productQtyInputLocator);
                     qtyTextField.sendKeys(Keys.BACK_SPACE);
+                    wait.until(ExpectedConditions.numberOfElementsToBeLessThan(cartProductsLocator,numberOfProductsOnPage));
                 } catch (Exception e2) {
                     System.out.println("Deleting the Product from cart is not possible");
                     throw (e2);
@@ -223,7 +228,7 @@ public class CartPage {
                 dropdown.selectByVisibleText(newQty.toString());
                 wait.until(ExpectedConditions.numberOfElementsToBe(productChangeAnimatorLocator,0));
             } catch (Exception e1) {
-                // qtyDropdown is not present, finding qtyPlusButton
+                // qtyDropdown is not present, finding qtyTextField
                 try {
                     WebElement qtyTextField = lineItem.findElement(productQtyInputLocator);
                     Integer currentQty = Integer.parseInt(qtyTextField.getAttribute("value"));
@@ -271,6 +276,35 @@ public class CartPage {
         String expectedWarningText = "Please note: the minimum order value is €19.00 (without shipping costs)";
 
         return (getCartSubTotal() < 19 && !checkoutButton.isEnabled() && expectedWarningText.equals(checkoutWarning.getText()));
+    }
+
+    public boolean cleanupCart(){
+        WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(5));
+       if (isCartEmpty())
+           return true;
+
+        if(!webDriver.getCurrentUrl().contains("/cart")){
+            webDriver.navigate().to("https://www.zooplus.com/checkout/cart");
+        }
+        List<Product> allCartProducts = getAllCartProducts();
+        List<Double> pricesFetched = new ArrayList<>();
+        List<Double> uniquePrices = new ArrayList<>();
+
+        for (Product allCartProduct : allCartProducts) {
+            pricesFetched.add(allCartProduct.getPrice());
+        }
+
+        for (Double price : pricesFetched) {
+            if (!uniquePrices.contains(price)) {
+                uniquePrices.add(price);
+            }
+        }
+        for (Double price : uniquePrices) {
+            deleteProductFromCartByPrice(price);
+        }
+
+        return isCartEmpty();
+
     }
 
     private WebElement clickablityOf(By element){

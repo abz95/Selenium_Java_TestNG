@@ -118,7 +118,7 @@ public class HomePage {
         }
         catch (TimeoutException | NoSuchElementException e){
             System.out.println("Element wasn't visible on the page");
-            throw (e);
+            return null;
         }
     }
 
